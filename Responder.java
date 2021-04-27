@@ -14,8 +14,8 @@ import java.util.*;
  * in the HashMap, the corresponding response is returned. If none of the input
  * words is recognized, one of the default responses is randomly chosen.
  * 
- * @author David J. Barnes and Michael Kölling.
- * @version 2016.02.29
+ * @author Robert James Tallafer
+ * @version 2021.04.27
  */
 public class Responder
 {
@@ -23,8 +23,12 @@ public class Responder
     private HashMap<String, String> responseMap;
     // Default responses to use if we don't recognise a word.
     private ArrayList<String> defaultResponses;
+    // Response for the input keyword
+    private ArrayList<String> keywordResponses;
     // The name of the file containing the default responses.
     private static final String FILE_OF_DEFAULT_RESPONSES = "default.txt";
+    // Stores responses in place of hashmap
+    private static final String FILE_OF_RESPONSES = "response.txt";
     private Random randomGenerator;
 
     /**
@@ -34,6 +38,7 @@ public class Responder
     {
         responseMap = new HashMap<>();
         defaultResponses = new ArrayList<>();
+        keywordResponses = new ArrayList<>();
         fillResponseMap();
         fillDefaultResponses();
         randomGenerator = new Random();
@@ -67,6 +72,47 @@ public class Responder
      */
     private void fillResponseMap()
     {
+        Charset charset = Charset.forName("US-ASCII");
+        Path path = Paths.get(FILE_OF_RESPONSES);
+        try (BufferedReader reader = Files.newBufferedReader(path, charset)) {
+            String response = reader.readLine();
+            
+            String reply = "";
+            String key = "";
+            while(response != null) {
+              if(response.length() >1)
+              {
+               response.trim();
+                    key = response;
+                    response = reader.readLine();
+                    while(response != null && response.length() != 0) {
+                        reply += response +"\n";
+                        response = reader.readLine();
+                    }   
+                }
+              else
+              {
+                String[] arrayKeys = key.split(",");
+                    for(int i = 0; i<arrayKeys.length; i++){
+                        responseMap.put(arrayKeys[i], reply);
+                    }
+                    reply = "";
+                    key = "";
+                    
+                    response = reader.readLine();  
+                }
+            }
+        }
+        catch(FileNotFoundException e) {
+            System.err.println("Unable to open " + FILE_OF_RESPONSES);
+        }
+        catch(IOException e) {
+            System.err.println("A problem was encountered reading " +
+                               FILE_OF_RESPONSES);
+        }
+        
+        
+        
         responseMap.put("crash", 
                         "Well, it never crashes on our system. It must have something\n" +
                         "to do with your system. Tell me more about your configuration.");
@@ -125,10 +171,21 @@ public class Responder
         Path path = Paths.get(FILE_OF_DEFAULT_RESPONSES);
         try (BufferedReader reader = Files.newBufferedReader(path, charset)) {
             String response = reader.readLine();
+            String key = " ";
             while(response != null) {
-                defaultResponses.add(response);
-                response = reader.readLine();
+                if(response.length() >0)
+                {
+                    key+= response + "\n";
+                    response = reader.readLine();    
+                }
+                else{
+                    defaultResponses.add(key);
+                    key= " ";
+                    response = reader.readLine();
+                }
             }
+           
+            
         }
         catch(FileNotFoundException e) {
             System.err.println("Unable to open " + FILE_OF_DEFAULT_RESPONSES);
@@ -141,6 +198,7 @@ public class Responder
         if(defaultResponses.size() == 0) {
             defaultResponses.add("Could you elaborate on that?");
         }
+   
     }
 
     /**
